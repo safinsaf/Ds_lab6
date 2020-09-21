@@ -27,48 +27,47 @@ print(f"[+] Connecting to {host_ip}:{port}")
 s.connect((host_ip, port))
 print("[+] Connected.")
 
+# check if filename exists
+if filename:
+    print("filename:", filename)
+else:
+    print("No file")
+    exit()
+
+file_loc = filename
+
+# send filename
 s.send(f"{filename}".encode())
 
 #get filesize
-filesize = s.recv(1024).decode('utf-8')
 try:
-    filesize = int(filesize)
+    filesize = os.path.getsize(file_loc)
+    print("filesize:", filesize)
 except:
-    print(filesize)
+    print("No such file")
     exit()
-s.send("Ok".encode())
+
+Ok = s.recv(1024).decode('utf-8')
+
+# ensure server got size
+if(Ok != 'Ok'):
+    print("Error")
+    exit()
 
 
-# give right name in case of copy
-copy = 0
-while os.path.isfile(filename):
-    if copy == 0:
-        copy+=1
-    elif copy == 1:
-        filename = "001_" + filename
-        copy+=1
-    else:
-        filename = '0' * (3-len(str(copy))) + str(copy) + filename[3:]
-        copy+=1
-
-# read data, write to file, draw bar
-with open(filename, "wb") as f:
+# send file
+with open(file_loc, "rb") as f:
     count = 0
     while count < filesize:
-        # read 1024 bytes from the socket (receive)
-        bytes_read = s.recv(1024)
+        # read the bytes from the file
+        bytes_read = f.read(1024)
         count += len(bytes_read)
         if not bytes_read:
-            # nothing is received
-            # file transmitting is done
             break
-        # write to the file the bytes we just received
-        f.write(bytes_read)
+        s.sendall(bytes_read)
         # update the progress bar
-        print("\r" + "#"*math.floor(60*count/filesize) + "-"*(60-math.floor(60*count/filesize)) +
-              "|" + str(math.floor(100*count/filesize)) + "%|", end = "")
+        print("\r" + "#" * math.floor(60 * count / filesize) + "-" * (60 - math.floor(60 * count / filesize)) +
+              "|" + str(math.floor(100 * count / filesize)) + "%|", end="")
     print()
-
-print("File transfered")
 
 s.close()
