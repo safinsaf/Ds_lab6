@@ -13,24 +13,6 @@ class ClientListener(Thread):
         self.sock = sock
         self.name = name
 
-    # add 'me> ' to sended message
-    def _clear_echo(self, data):
-        # \033[F – symbol to move the cursor at the beginning of current line (Ctrl+A)
-        # \033[K – symbol to clear everything till the end of current line (Ctrl+K)
-        #self.sock.sendall('\033[F\033[K'.encode())
-        #data = 'me> '.encode() + data
-        # send the message back to user
-        self.sock.sendall(data)
-
-    # broadcast the message with name prefix eg: 'u1> '
-    def _broadcast(self, data):
-        #data = (self.name + '> ').encode() + data
-        for u in clients:
-            # send to everyone except current client
-            if u == self.sock:
-                continue
-            u.sendall(data)
-
     # clean up
     def _close(self):
         clients.remove(self.sock)
@@ -38,18 +20,17 @@ class ClientListener(Thread):
         print(self.name + ' disconnected')
 
     def run(self):
-
-        # try to read 1024 bytes from user
-        # this is blocking call, thread will be paused here
-
+        #Read filename
         filename = self.sock.recv(1024).decode('utf-8')
         if filename:
             print("filename:", filename)
         else:
+            #return error
             self.sock.send("File does not exist".encode())
             self._close()
             return
 
+        #find file and set location
         file_loc = "server_files/" + filename
         try:
             filesize = os.path.getsize(file_loc)
@@ -62,11 +43,11 @@ class ClientListener(Thread):
 
         Ok = self.sock.recv(1024).decode('utf-8')
 
+        #ensure client got size
         if(Ok != 'Ok'):
             print("Error")
 
-        # unit="K",
-
+        # send and draw bar
         with open(file_loc, "rb") as f:
             count = 0
             while count < filesize:
@@ -74,10 +55,7 @@ class ClientListener(Thread):
                 bytes_read = f.read(1024)
                 count += len(bytes_read)
                 if not bytes_read:
-                    # file transmitting is done
                     break
-                # we use sendall to assure transimission in
-                # busy networks
                 self.sock.sendall(bytes_read)
                 # update the progress bar
                 print("\r" + "#" * math.floor(60 * count / filesize) + "-" * (60 - math.floor(60 * count / filesize)) +

@@ -4,12 +4,14 @@ import os
 import math
 import ipaddress
 
+# read arguments
 filename = sys.argv[1]
 host_ip = sys.argv[2]
 port = int(sys.argv[3])
 
 print(filename)
 
+#check what we got: ip or hostname, then take ip
 try:
     ipaddress.ip_address(host_ip)
 except:
@@ -27,6 +29,7 @@ print("[+] Connected.")
 
 s.send(f"{filename}".encode())
 
+#get filesize
 filesize = s.recv(1024).decode('utf-8')
 try:
     filesize = int(filesize)
@@ -35,6 +38,8 @@ except:
     exit()
 s.send("Ok".encode())
 
+
+# give right name in case of copy
 copy = 0
 while os.path.isfile(filename):
     if copy == 0:
@@ -46,7 +51,7 @@ while os.path.isfile(filename):
         filename = '0' * (3-len(str(copy))) + str(copy) + filename[3:]
         copy+=1
 
-#unit_scale=True,
+# read data, write to file, draw bar
 with open(filename, "wb") as f:
     count = 0
     while count < filesize:
